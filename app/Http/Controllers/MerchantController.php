@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Models\Merchant;
-use App\Services\MerchantService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Services\MerchantService;
+use Illuminate\Http\JsonResponse;
 
 class MerchantController extends Controller
 {
@@ -22,6 +23,22 @@ class MerchantController extends Controller
      */
     public function orderStats(Request $request): JsonResponse
     {
-        // TODO: Complete this method
+        // Extract 'from' and 'to' dates from the request
+        $fromDate = $request->input('from');
+        $toDate = $request->input('to');
+    
+         // Fetch orders within the specified date range
+         $orders = Order::whereBetween('created_at', [$fromDate, $toDate])->get();
+    
+         // Calculate order statistics
+         $totalCount = $orders->count();
+         $totalCommissionOwed = $orders->sum('commission_owed');
+         $totalRevenue = $orders->sum('subtotal');
+    
+        return response()->json([
+            'count' => $totalCount,
+            'commission_owed' => $totalCommissionOwed,
+            'revenue' => $totalRevenue,
+        ]);
     }
 }

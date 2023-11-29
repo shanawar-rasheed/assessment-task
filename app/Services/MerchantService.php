@@ -7,6 +7,7 @@ use App\Models\Affiliate;
 use App\Models\Merchant;
 use App\Models\Order;
 use App\Models\User;
+use Illuminate\Support\Str;
 
 class MerchantService
 {
@@ -19,9 +20,34 @@ class MerchantService
      * @return Merchant
      */
     public function register(array $data): Merchant
-    {
-        // TODO: Complete this method
+{
+    // Generate a unique API key for the merchant
+    $api_key = $this->generateUniqueApiKey();
+
+    // Create a new user and check if it was successful
+    $user = User::create([
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => bcrypt($api_key),
+        'type' => User::TYPE_MERCHANT,
+    ]);
+
+    if (!$user) {
+        // Handle the case where user creation failed
+        // You might want to throw an exception or log an error
+        // For simplicity, let's assume throwing an exception for now
+        throw new \RuntimeException('User creation failed');
     }
+
+    // Now that we have the user, create the associated merchant
+    $merchant = Merchant::create([
+        'user_id' => $user->id,
+        'domain' => $data['domain'],
+        'display_name' => $data['name'],
+    ]);
+
+    return $merchant;
+}
 
     /**
      * Update the user
@@ -31,7 +57,16 @@ class MerchantService
      */
     public function updateMerchant(User $user, array $data)
     {
-        // TODO: Complete this method
+        $user->update([
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ]);
+
+        // Update the associated merchant's details
+        $user->merchant->update([
+            'domain' => $data['domain'],
+            'display_name' => $data['name'],
+        ]);
     }
 
     /**
@@ -43,7 +78,11 @@ class MerchantService
      */
     public function findMerchantByEmail(string $email): ?Merchant
     {
-        // TODO: Complete this method
+        // Find the user with the given email
+        $user = User::where('email', $email)->first();
+        
+        // Return the associated merchant if the user exists
+        return $user ? $user->merchant : null;
     }
 
     /**
@@ -53,8 +92,25 @@ class MerchantService
      * @param Affiliate $affiliate
      * @return void
      */
+
     public function payout(Affiliate $affiliate)
     {
-        // TODO: Complete this method
+        // Retrieve unpaid orders for the affiliate
+        $unpaidOrders = $affiliate->orders()->where('payout_status', Order::STATUS_UNPAID)->get();
+
+        // Dispatch a job for each unpaid order
+        foreach ($unpaidOrders as $order) {
+            dispatch(new PayoutOrderJob($order));
+        }
+    }
+    /**
+     * Generate a unique API key for the merchant.
+     *
+     * @return string
+     */
+    protected function generateUniqueApiKey(): string
+    {
+        // Use Laravel's Str::uuid() to generate a unique API key
+        return \Illuminate\Support\Str::uuid();
     }
 }

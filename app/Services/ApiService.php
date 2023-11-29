@@ -21,9 +21,17 @@ class ApiService
      */
     public function createDiscountCode(Merchant $merchant): array
     {
+        // Generate a unique discount code for an affiliate
+        $code = Str::uuid();
+    
+        // Store the generated discount code in the database
+        $merchant->discountCodes()->create([
+            'code' => $code,
+        ]);
+    
         return [
             'id' => rand(0, 100000),
-            'code' => Str::uuid()
+            'code' => $code,
         ];
     }
 
@@ -37,6 +45,23 @@ class ApiService
      */
     public function sendPayout(string $email, float $amount)
     {
-        //
+        // Simulate sending a payout, throw an exception if unsuccessful
+        if ($this->simulateSendPayout($email, $amount)) {
+            throw new RuntimeException('Payout failed');
+        }
+    }
+
+    /**
+     * Simulate sending a payout.
+     *
+     * @param  string $email
+     * @param  float $amount
+     * @return bool
+     */
+    protected function simulateSendPayout(string $email, float $amount): bool
+    {
+        // Simulate the payout sending process (replace this with actual logic)
+        // Return true if successful, false otherwise
+        return true;
     }
 }

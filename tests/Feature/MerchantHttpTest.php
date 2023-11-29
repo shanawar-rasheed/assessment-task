@@ -41,7 +41,7 @@ class MerchantHttpTest extends TestCase
         $old = tap($orders->random())->update([
             'created_at' => now()->subWeek()
         ]);
-
+        
         $future = tap($orders->whereNotIn('id', [$old->id])->random())->update([
             'created_at' => now()->addWeek()
         ]);
